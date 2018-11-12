@@ -19,6 +19,8 @@ app.use(morgan(function(tokens, req, res) {
   ].join(' ')
 }))
 
+app.use(express.static('build'))
+
 let persons = [
   {
     name: 'Arto Hellas',
@@ -41,6 +43,7 @@ let persons = [
     id: 4
   }
 ]
+
 
 app.get('/api/persons', (req, res) => {
   res.json(persons)
