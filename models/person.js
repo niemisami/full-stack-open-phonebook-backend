@@ -1,7 +1,9 @@
-require('dotenv').config()
+if(process.env.NODE_ENV !== 'production') {
+  require('dotenv').config()
+}
 const mongoose = require('mongoose')
 
-const url = process.env.DB_URI
+const url = process.env.MONGODB_URI
 mongoose.connect(url, { useNewUrlParser: true })
 
 const personSchema = new mongoose.Schema({

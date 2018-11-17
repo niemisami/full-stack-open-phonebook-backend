@@ -23,30 +23,6 @@ app.use(morgan(function(tokens, req, res) {
 
 app.use(express.static('build'))
 
-let persons = [
-  {
-    name: 'Arto Hellas',
-    number: '040-123456',
-    id: 1
-  },
-  {
-    name: 'Martti Tienari',
-    number: '040-123456',
-    id: 2
-  },
-  {
-    name: 'Arto Järvinen',
-    number: '040-123456',
-    id: 3
-  },
-  {
-    name: 'Lea Kutvonen',
-    number: '040-123456',
-    id: 4
-  }
-]
-
-
 app.get('/api/persons', (req, res) => {
   Person.find({})
     .then(people => people.map(Person.format))
@@ -115,10 +91,10 @@ app.put('/api/persons/:id', (req, res) => {
 app.delete('/api/persons/:id', (req, res) => {
   Person
     .findByIdAndRemove(req.params.id)
-    .then(result => {
+    .then(() => {
       res.status(204).end()
     })
-    .catch(error => {
+    .catch(() => {
       res.status(400).send({ error: 'malformatted id' })
     })
 })
