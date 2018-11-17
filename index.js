@@ -2,6 +2,8 @@ const express = require('express')
 const bodyParser = require('body-parser')
 const morgan = require('morgan')
 const cors = require('cors')
+const Person = require('./models/person')
+
 const app = express()
 
 app.use(bodyParser.json())
@@ -46,51 +48,100 @@ let persons = [
 
 
 app.get('/api/persons', (req, res) => {
-  res.json(persons)
+  Person.find({})
+    .then(people => people.map(Person.format))
+    .then(people => res.send(people))
+    .catch(error => {
+      console.error(error)
+      res.status(404).end()
+    })
 })
 
 app.get('/api/persons/:id', (req, res) => {
-  const id = Number(req.params.id)
-  const person = persons.find(person => person.id === id)
-  if(person) {
-    res.json(person)
-  } else {
-    res.status(404).end()
-  }
+  const id = req.params.id
+  Person.findById(id)
+    .then(person => {
+      if(person) {
+        res.json(Person.format(person))
+      } else {
+        res.status(404).end()
+      }
+    })
+    .catch(error => {
+      console.error(error)
+      res.status(404).end()
+    })
 })
 
 app.post('/api/persons', (req, res) => {
-  const generatedId = Math.random() * Number.MAX_SAFE_INTEGER
-  const person = req.body
-  if(!person.name || !person.number) {
+  const { name, number } = req.body
+  if(!name || !number) {
     return res.status(400).json({ error: 'name or number is missing' })
   }
-  if(persons.find(existingPerson => existingPerson.name === person.name)) {
-    return res.status(400).json({ error: 'person already exists' })
+  Person.findOne({ name })
+    .then(oldPerson => {
+      if(oldPerson !== null) {
+        return res.status(409).send({ error: 'person already exists' })
+      }
+      const person = new Person({
+        name: req.body.name,
+        number: req.body.number
+      })
+      return person.save()
+    })
+    .then(person => res.send(person))
+    .catch(error => {
+      console.error(error)
+      res.status(404).end()
+    })
+})
+
+app.put('/api/persons/:id', (req, res) => {
+  const { name, number } = req.body
+  if(!name || !number) {
+    return res.status(400).json({ error: 'name or number is missing' })
   }
-
-  person.id = generatedId
-
-  persons = persons.concat(person)
-
-  res.json(person)
+  const person = { name, number }
+  Person.findByIdAndUpdate(req.params.id, person, { new: true })
+    .then(updatedPerson => {
+      res.json(Person.format(updatedPerson))
+    })
+    .catch(error => {
+      console.error(error)
+      res.status(400).send({ error: 'malformatted id' })
+    })
 })
 
 app.delete('/api/persons/:id', (req, res) => {
-  const id = Number(req.params.id)
-  persons = persons.filter(person => person.id !== id)
-  res.status(204).end()
+  Person
+    .findByIdAndRemove(req.params.id)
+    .then(result => {
+      res.status(204).end()
+    })
+    .catch(error => {
+      res.status(400).send({ error: 'malformatted id' })
+    })
 })
 
 app.get('/info', (req, res) => {
-  const message = `<p>Puhelinluettelossa ${persons.length} henkilön tiedot</p>
-  ${new Date().toISOString()} `
-  res.send(message)
+  Person.countDocuments({})
+    .exec()
+    .then(count => {
+      const message = `<p>Puhelinluettelossa ${count} henkilön tiedot</p>
+      ${new Date().toISOString()} `
+      return res.send(message)
+    })
+    .catch(error => {
+      console.error(error)
+      res.status(404).end()
+    })
 })
 
 const error = (req, res) => {
   res.status(404).send({ error: 'unknown endpoint' })
 }
+
+app.use(error)
 
 const PORT = process.env.PORT || 3001
 app.listen(PORT, () => {
